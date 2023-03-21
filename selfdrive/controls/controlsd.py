@@ -32,6 +32,7 @@ from selfdrive.controls.lib.vehicle_model import VehicleModel
 from selfdrive.locationd.calibrationd import Calibration
 from system.hardware import HARDWARE
 from selfdrive.manager.process_config import managed_processes
+from selfdrive.controls.lib.radar_helpers import RADAR_TO_CAMERA
 
 SOFT_DISABLE_TIME = 3  # seconds
 LDW_MIN_SPEED = 31 * CV.MPH_TO_MS
@@ -571,7 +572,7 @@ class Controls:
     #sr = max(lp.steerRatio, 0.1)
 
     if ntune_common_enabled('useLiveSteerRatio'):
-      sr = max(lp.steerRatio, 0.1)
+      sr = max(lp.steerRatio, 0.1) * 0.95 # 넥쏘의 SteerRatio 는 14.19 이다.  학습 값의 95% 를 사용함./
     else:
       sr = max(ntune_common_get('steerRatio'), 0.1)
 
@@ -716,6 +717,18 @@ class Controls:
     hudControl.rightLaneVisible = True
     hudControl.leftLaneVisible = True
 
+    # add PolorBear - 선행차 의 거리 계산...
+    lead_model = self.sm['modelV2'].leadsV3 # 선행차 와의 거리 (비젼 측정값...)
+    lead_radar = self.sm['radarState'].leadOne # 선행차 와의 거리 (레이다 측정값...)
+    if len(lead_model) : #비전에서 측정 결과가 있을때...
+      vision_dist = lead_model[0].x[0] - RADAR_TO_CAMERA if lead_model[0].prob > .5 else 0 #(비젼 측정값...)
+      #radar_dist = lead_radar.dRel if lead_radar.status and lead_radar.radar else 0 #(레이다 측정값...)
+      hudControl.objDist = int(vision_dist)
+    else : # 비젼 결과가 없으면... 레이다...
+      radar_dist = lead_radar.dRel if lead_radar.status and lead_radar.radar else 0 #레이다
+      hudControl.objDist = int(radar_dist)
+    hudControl.objRelSpd = (CS.vEgo*3.6) #현재 내 속도..?
+    
     recent_blinker = (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 5.0  # 5s blinker cooldown
     ldw_allowed = self.is_ldw_enabled and CS.vEgo > LDW_MIN_SPEED and not recent_blinker \
                   and not CC.latActive and self.sm['liveCalibration'].calStatus == Calibration.CALIBRATED

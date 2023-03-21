@@ -15,7 +15,7 @@ from selfdrive.car.interfaces import CarStateBase
 
 PREV_BUTTON_SAMPLES = 8
 CLUSTER_SAMPLE_RATE = 20  # frames
-
+GearShifter = car.CarState.GearShifter
 
 class CarState(CarStateBase):
   def __init__(self, CP):
@@ -49,9 +49,7 @@ class CarState(CarStateBase):
     self.params = CarControllerParams(CP)
     self.mdps_error_cnt = 0
     self.cruise_unavail_cnt = 0
-
-    self.lfa_btn = 0
-    self.lfa_enabled = False
+    self.gear_shifter = GearShifter.drive # Gear_init for Nexo ?? unknown 21.02.23.LSW
 
   def update(self, cp, cp_cam):
     if self.CP.carFingerprint in CANFD_CAR:
@@ -150,10 +148,25 @@ class CarState(CarStateBase):
       gear = cp.vl["TCU12"]["CUR_GR"]
     elif self.CP.carFingerprint in FEATURES["use_elect_gears"]:
       gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
+      gear_shifter = GearShifter.unknown
+
+      if gear == 1546:  # Thank you for Neokii 
+        gear_shifter = GearShifter.drive
+      elif gear == 2314:
+        gear_shifter = GearShifter.neutral
+      elif gear == 2569:
+        gear_shifter = GearShifter.park
+      elif gear == 2566:
+        gear_shifter = GearShifter.reverse
+
+      if gear_shifter != GearShifter.unknown and self.gear_shifter != gear_shifter:
+        self.gear_shifter = gear_shifter
+
+      ret.gearShifter = self.gear_shifter
     else:
       gear = cp.vl["LVR12"]["CF_Lvr_Gear"]
 
-    ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
+    #ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
 
     if not self.CP.openpilotLongitudinalControl or self.CP.sccBus == 2:
       aeb_src = "FCA11" if self.CP.flags & HyundaiFlags.USE_FCA.value else "SCC12"
@@ -215,13 +228,14 @@ class CarState(CarStateBase):
 
     if self.CP.hasNav:
       ret.navSpeedLimit = cp.vl["Navi_HU"]["SpeedLim_Nav_Clu"]
+    
+    #if self.CP.openpilotLongitudinalControl :#and self.CP.sccBus == 2:
+     # CruiseStateManager.instance().update(ret, self.main_buttons, self.cruise_buttons, BUTTONS_DICT, ret.cruiseState.available, False)
+      #CruiseStateManager.instance().update(ret, self.main_buttons, self.cruise_buttons, BUTTONS_DICT, available)
 
-    if self.CP.openpilotLongitudinalControl and self.CP.sccBus == 2:
-      CruiseStateManager.instance().update(ret, self.main_buttons, self.cruise_buttons, BUTTONS_DICT, ret.cruiseState.available, False)
-
-    #if self.CP.openpilotLongitudinalControl and CruiseStateManager.instance().cruise_state_control:
-    #  available = ret.cruiseState.available if self.CP.sccBus == 2 else -1
-    #  CruiseStateManager.instance().update(ret, self.main_buttons, self.cruise_buttons, BUTTONS_DICT, available)
+    if self.CP.openpilotLongitudinalControl and CruiseStateManager.instance().cruise_state_control:
+      available = ret.cruiseState.available if self.CP.sccBus == 2 else -1
+      CruiseStateManager.instance().update(ret, self.main_buttons, self.cruise_buttons, BUTTONS_DICT, available)
 
     return ret
 
@@ -299,13 +313,6 @@ class CarState(CarStateBase):
 
     # ------------------------------------------------------------------------
     # custom messages
-
-    prev_lfa_btn = self.lfa_btn
-    self.lfa_btn = cp.vl[cruise_btn_msg]["LFA_BTN"]
-    if prev_lfa_btn != 1 and self.lfa_btn == 1:
-      self.lfa_enabled = not self.lfa_enabled
-
-    ret.cruiseState.available = self.lfa_enabled
 
     # TODO BrakeLights, TPMS, AutoHold
     ret.brakeLights = ret.brakePressed
@@ -556,6 +563,7 @@ class CarState(CarStateBase):
         ("CR_VSM_Alive", "SCC12"),
         ("CR_VSM_ChkSum", "SCC12"),
       ]
+
       checks += [
         ("SCC11", 50),
         ("SCC12", 50),
@@ -618,7 +626,6 @@ class CarState(CarStateBase):
       ("CRUISE_BUTTONS", cruise_btn_msg),
       ("ADAPTIVE_CRUISE_MAIN_BTN", cruise_btn_msg),
       ("DISTANCE_UNIT", "CRUISE_BUTTONS_ALT"),
-      ("LFA_BTN", cruise_btn_msg),
 
       ("LEFT_LAMP", "BLINKERS"),
       ("RIGHT_LAMP", "BLINKERS"),

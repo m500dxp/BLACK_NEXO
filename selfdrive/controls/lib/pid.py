@@ -68,6 +68,11 @@ class PIDController():
           (error <= 0 and (control >= self.neg_limit or i > 0.0))) and \
          not freeze_integrator:
         self.i = i
+      
+      # Dynamic Clamp 적용 - Thank yoy for ajouatom(섭섭이네)
+      i_max = max(self.pos_limit - self.p, 0)
+      i_min = min(self.neg_limit - self.p, 0)
+      self.i = clip(self.i, i_min, i_max)
 
     control = self.p + self.i + self.d + self.f
 
