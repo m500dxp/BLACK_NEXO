@@ -65,7 +65,6 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     lowBattery @48;
     vehicleModelInvalid @50;
     accFaulted @51;
-    accFaultedTemp @115;
     sensorDataInvalid @52;
     commIssue @53;
     commIssueAvgFreq @109;
@@ -114,6 +113,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     canBusMissing @111;
     controlsdLagging @112;
     resumeBlocked @113;
+    steerTimeLimit @115;
 
     slowingDownSpeed @116;
     slowingDownSpeedSound @117;
@@ -405,6 +405,7 @@ struct CarControl {
     leftLaneDepart @9: Bool;
     objDist @10: Int32;
     objRelSpd @11: Float32;
+
     enum VisualAlert {
       # these are the choices from the Honda
       # map as good as you can for your car
@@ -647,6 +648,7 @@ struct CarParams {
     brand @6 :Text;
     bus @7 :UInt8;
     logging @8 :Bool;
+    obdMultiplexing @9 :Bool;
   }
 
   enum Ecu {
@@ -665,10 +667,11 @@ struct CarParams {
     shiftByWire @16;
     adas @19;
     cornerRadar @21;
+    hvac @20;
+    parkingAdas @7;  # parking assist system ECU, e.g. Toyota's IPAS, Hyundai's RSPA, etc.
 
     # Toyota only
     dsu @6;
-    apgs @7;
 
     # Honda only
     vsa @13; # Vehicle Stability Assist
@@ -677,10 +680,8 @@ struct CarParams {
     # Chrysler only
     hcp @18;  # Hybrid Control Processor
 
-    # Hyundai only
-    vcu @20;  # Vehicle (Motor) Control Unit
-
     debug @17;
+    unused @22;
   }
 
   enum FingerprintSource {
