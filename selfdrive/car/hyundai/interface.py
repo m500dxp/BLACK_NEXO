@@ -330,7 +330,7 @@ class CarInterface(CarInterfaceBase):
         ret.radarUnavailable = False
         ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiLegacy)]
 
-    if ret.openpilotLongitudinalControl and ret.sccBus == 0 : #and Params().get_bool('CruiseStateControl'):
+    if ret.openpilotLongitudinalControl and ret.sccBus == 0 and Params().get_bool('CruiseStateControl'):
       ret.pcmCruise = False # pcmCruise 가 false 여야 롱컨이됨..??
     else:
       ret.pcmCruise = True # managed by cruise state manager
