@@ -41,9 +41,7 @@ LANE_DEPARTURE_THRESHOLD = 0.1
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
 NOSENSOR = "NOSENSOR" in os.environ
-IGNORE_PROCESSES = {"uploader", "deleter", "loggerd", "logmessaged", "tombstoned", "statsd",
-                    "logcatd", "proclogd", "clocksd", "updated", "timezoned", "manage_athenad"} | \
-                   {k for k, v in managed_processes.items() if not v.enabled}
+IGNORE_PROCESSES = {"loggerd", "encoderd", "statsd"}
 
 ThermalStatus = log.DeviceState.ThermalStatus
 State = log.ControlsState.OpenpilotState
@@ -417,7 +415,7 @@ class Controls:
     # TODO: fix simulator
     if not SIMULATION:
       if not NOSENSOR:
-        if not self.sm['liveLocationKalman'].gpsOK and (self.distance_traveled > 1000):
+        if not self.sm['liveLocationKalman'].gpsOK and self.sm['liveLocationKalman'].inputsOK and (self.distance_traveled > 1000):
           # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
           self.events.add(EventName.noGps)
 
@@ -717,6 +715,7 @@ class Controls:
     hudControl.rightLaneVisible = True
     hudControl.leftLaneVisible = True
 
+
     # add PolorBear - 선행차 의 거리 계산...
     lead_model = self.sm['modelV2'].leadsV3 # 선행차 와의 거리 (비젼 측정값...)
     lead_radar = self.sm['radarState'].leadOne # 선행차 와의 거리 (레이다 측정값...)
@@ -727,8 +726,7 @@ class Controls:
     else : # 비젼 결과가 없으면... 레이다...
       radar_dist = lead_radar.dRel if lead_radar.status and lead_radar.radar else 0 #레이다
       hudControl.objDist = int(radar_dist)
-    hudControl.objRelSpd = (CS.vEgo*3.6) #현재 내 속도..?
-    
+      
     recent_blinker = (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 5.0  # 5s blinker cooldown
     ldw_allowed = self.is_ldw_enabled and CS.vEgo > LDW_MIN_SPEED and not recent_blinker \
                   and not CC.latActive and self.sm['liveCalibration'].calStatus == Calibration.CALIBRATED
@@ -738,8 +736,8 @@ class Controls:
     if len(desire_prediction) and ldw_allowed:
       right_lane_visible = model_v2.laneLineProbs[2] > 0.5
       left_lane_visible = model_v2.laneLineProbs[1] > 0.5
-      l_lane_change_prob = desire_prediction[Desire.laneChangeLeft - 1]
-      r_lane_change_prob = desire_prediction[Desire.laneChangeRight - 1]
+      l_lane_change_prob = desire_prediction[Desire.laneChangeLeft]
+      r_lane_change_prob = desire_prediction[Desire.laneChangeRight]
 
       lane_lines = model_v2.laneLines
       l_lane_close = left_lane_visible and (lane_lines[1].y[0] > -(1.08 + CAMERA_OFFSET))

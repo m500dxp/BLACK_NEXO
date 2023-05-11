@@ -18,7 +18,7 @@ class CarControllerParams:
 
   def __init__(self, CP):
     self.STEER_DELTA_UP = 3
-    self.STEER_DELTA_DOWN = 7
+    self.STEER_DELTA_DOWN = 6
     self.STEER_DRIVER_ALLOWANCE = 50
     self.STEER_DRIVER_MULTIPLIER = 2
     self.STEER_DRIVER_FACTOR = 1
@@ -101,6 +101,7 @@ class CAR:
   KIA_K5_2021 = "KIA K5 2021"
   KIA_K5_HEV_2020 = "KIA K5 HYBRID 2020"
   KIA_NIRO_EV = "KIA NIRO EV 2020"
+  KIA_NIRO_EV_2ND_GEN = "KIA NIRO EV 2ND GEN"
   KIA_NIRO_PHEV = "KIA NIRO HYBRID 2019"
   KIA_NIRO_HEV_2021 = "KIA NIRO HYBRID 2021"
   KIA_NIRO_HEV_2ND_GEN = "KIA NIRO HYBRID 2ND GEN"
@@ -205,6 +206,7 @@ CAR_INFO: Dict[str, Optional[Union[HyundaiCarInfo, List[HyundaiCarInfo]]]] = {
     HyundaiCarInfo("Kia Niro EV 2021", "All", "https://www.youtube.com/watch?v=lT7zcG6ZpGo", harness=Harness.hyundai_c),
     HyundaiCarInfo("Kia Niro EV 2022", "All", "https://www.youtube.com/watch?v=lT7zcG6ZpGo", harness=Harness.hyundai_h),
   ],
+  CAR.KIA_NIRO_EV_2ND_GEN: HyundaiCarInfo("Kia Niro EV 2023", "All", harness=Harness.hyundai_a),
   CAR.KIA_NIRO_PHEV: [
     HyundaiCarInfo("Kia Niro Plug-in Hybrid 2018-19", "All", min_enable_speed=10. * CV.MPH_TO_MS, harness=Harness.hyundai_c),
     HyundaiCarInfo("Kia Niro Plug-in Hybrid 2020", "All", harness=Harness.hyundai_d),
@@ -234,8 +236,8 @@ CAR_INFO: Dict[str, Optional[Union[HyundaiCarInfo, List[HyundaiCarInfo]]]] = {
   CAR.KIA_CEED: HyundaiCarInfo("Kia Ceed 2019", harness=Harness.hyundai_e),
   CAR.KIA_EV6: [
     HyundaiCarInfo("Kia EV6 (Southeast Asia only) 2022-23", "All", harness=Harness.hyundai_p),
-    HyundaiCarInfo("Kia EV6 (without HDA II) 2022", "Highway Driving Assist", harness=Harness.hyundai_l),
-    HyundaiCarInfo("Kia EV6 (with HDA II) 2022", "Highway Driving Assist II", harness=Harness.hyundai_p)
+    HyundaiCarInfo("Kia EV6 (without HDA II) 2022-23", "Highway Driving Assist", harness=Harness.hyundai_l),
+    HyundaiCarInfo("Kia EV6 (with HDA II) 2022-23", "Highway Driving Assist II", harness=Harness.hyundai_p)
   ],
 
   # Genesis
@@ -388,14 +390,14 @@ FW_QUERY_CONFIG = FwQueryConfig(
     Request(
       [HYUNDAI_VERSION_REQUEST_ALT],
       [HYUNDAI_VERSION_RESPONSE],
-      whitelist_ecus=[Ecu.parkingAdas],
+      whitelist_ecus=[Ecu.parkingAdas, Ecu.hvac],
       bus=0,
       auxiliary=True,
     ),
     Request(
       [HYUNDAI_VERSION_REQUEST_ALT],
       [HYUNDAI_VERSION_RESPONSE],
-      whitelist_ecus=[Ecu.parkingAdas],
+      whitelist_ecus=[Ecu.parkingAdas, Ecu.hvac],
       bus=1,
       auxiliary=True,
       obd_multiplexing=False,
@@ -916,18 +918,23 @@ FW_VERSIONS = {
   CAR.KIA_STINGER_2022: {
     (Ecu.fwdRadar, 0x7d0, None): [
       b'\xf1\x00CK__ SCC F-CUP      1.00 1.00 99110-J5500         ',
+      b'\xf1\x00CK__ SCC FHCUP      1.00 1.00 99110-J5500         ',
     ],
     (Ecu.engine, 0x7e0, None): [
       b'\xf1\x81640R0051\x00\x00\x00\x00\x00\x00\x00\x00',
+      b'\xf1\x81HM6M1_0a0_H00',
     ],
     (Ecu.eps, 0x7d4, None): [
       b'\xf1\x00CK  MDPS R 1.00 5.03 57700-J5380 4C2VR503',
+      b'\xf1\x00CK  MDPS R 1.00 5.03 57700-J5300 4C2CL503',
     ],
     (Ecu.fwdCamera, 0x7c4, None): [
       b'\xf1\x00CK  MFC  AT AUS RHD 1.00 1.00 99211-J5500 210622',
+      b'\xf1\x00CK  MFC  AT KOR LHD 1.00 1.00 99211-J5500 210622',
     ],
     (Ecu.transmission, 0x7e1, None): [
       b'\xf1\x87VCNLF11383972DK1vffV\x99\x99\x89\x98\x86eUU\x88wg\x89vfff\x97fff\x99\x87o\xff"\xc1\xf1\x81E30\x00\x00\x00\x00\x00\x00\x00\xf1\x00bcsh8p54  E30\x00\x00\x00\x00\x00\x00\x00SCK0T33GH0\xbe`\xfb\xc6',
+      b'\xf1\x00bcsh8p54  E31\x00\x00\x00\x00\x00\x00\x00SCK0T25KH2B\xfbI\xe2',
     ],
   },
   CAR.PALISADE: {
@@ -1309,6 +1316,14 @@ FW_VERSIONS = {
       b'\xf1\x00DEE MFC  AT KOR LHD 1.00 1.03 95740-Q4000 180821',
     ],
   },
+  CAR.KIA_NIRO_EV_2ND_GEN: {
+    (Ecu.fwdRadar, 0x7d0, None): [
+      b'\xf1\x00SG2_ RDR -----      1.00 1.01 99110-AT000         ',
+    ],
+    (Ecu.fwdCamera, 0x7c4, None): [
+      b'\xf1\x00SG2EMFC  AT EUR LHD 1.01 1.09 99211-AT000 220801',
+    ],
+  },  
   CAR.KIA_NIRO_PHEV: {
     (Ecu.engine, 0x7e0, None): [
       b'\xf1\x816H6F4051\x00\x00\x00\x00\x00\x00\x00\x00',
@@ -1621,6 +1636,7 @@ FW_VERSIONS = {
     (Ecu.fwdCamera, 0x7c4, None): [
       b'\xf1\x00NX4 FR_CMR AT USA LHD 1.00 1.00 99211-N9210 14G',
       b'\xf1\x00NX4 FR_CMR AT USA LHD 1.00 1.01 99211-N9240 14T',
+      b'\xf1\x00NX4 FR_CMR AT USA LHD 1.00 1.00 99211-CW010 14X',
     ],
     (Ecu.fwdRadar, 0x7d0, None): [
       b'\xf1\x00NX4__               1.00 1.00 99110-N9100         ',
@@ -1639,6 +1655,7 @@ FW_VERSIONS = {
   },
   CAR.KIA_SPORTAGE_HYBRID_5TH_GEN: {
     (Ecu.fwdCamera, 0x7c4, None): [
+      b'\xf1\x00NQ5 FR_CMR AT USA LHD 1.00 1.00 99211-P1060 665',
       b'\xf1\x00NQ5 FR_CMR AT USA LHD 1.00 1.00 99211-P1060 665',
     ],
     (Ecu.fwdRadar, 0x7d0, None): [
@@ -1726,7 +1743,7 @@ CHECKSUM = {
   "6B": [CAR.KIA_SORENTO, CAR.HYUNDAI_GENESIS],
 }
 
-FEATURES = {
+CAN_GEARS = {
   # which message has the gear
   "use_cluster_gears": {CAR.ELANTRA, CAR.KONA},
   "use_tcu_gears": {CAR.KIA_OPTIMA_G4, CAR.KIA_OPTIMA_G4_FL, CAR.SONATA_LF, CAR.VELOSTER, CAR.TUCSON},
@@ -1807,6 +1824,7 @@ DBC = {
   CAR.KIA_SORENTO_4TH_GEN: dbc_dict('hyundai_canfd', None),
   CAR.KIA_NIRO_HEV_2ND_GEN: dbc_dict('hyundai_canfd', None),
   CAR.NEXO: dbc_dict('hyundai_kia_generic', 'hyundai_kia_mando_front_radar_generated'),
+  CAR.KIA_NIRO_EV_2ND_GEN: dbc_dict('hyundai_canfd', None),
 }
 
 
@@ -1823,7 +1841,7 @@ LEGACY_SAFETY_MODE_CAR = set(LEGACY_SAFETY_MODE_CAR) | set(values_community.LEGA
 DBC = {**DBC, **values_community.DBC}
 
 CHECKSUM = values_community.merge(CHECKSUM, values_community.CHECKSUM)
-FEATURES = values_community.merge(FEATURES, values_community.FEATURES)
+CAN_GEARS = values_community.merge(CAN_GEARS, values_community.CAN_GEARS)
 
 for member, value in vars(values_community.CAR).items():
   if not member.startswith("_"):

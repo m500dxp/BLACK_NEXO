@@ -719,7 +719,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, AlertCallbackType]]] = {
 
   EventName.calibrationIncomplete: {
     ET.PERMANENT: calibration_incomplete_alert,
-    ET.SOFT_DISABLE: soft_disable_alert("Calibration in Progress"),
+    ET.SOFT_DISABLE: soft_disable_alert("Device remount detected: recalibrating"),
     ET.NO_ENTRY: NoEntryAlert("Calibration in Progress"),
   },
 
@@ -943,6 +943,12 @@ EVENTS: Dict[int, Dict[str, Union[Alert, AlertCallbackType]]] = {
   EventName.lkasDisabled: {
     ET.PERMANENT: NormalPermanentAlert("LKAS Disabled: Enable LKAS to engage"),
     ET.NO_ENTRY: NoEntryAlert("LKAS Disabled"),
+  },
+
+  EventName.vehicleSensorsInvalid: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Vehicle Sensors Invalid"),
+    ET.PERMANENT: NormalPermanentAlert("Vehicle Sensors Calibrating", "Drive to Calibrate"),
+    ET.NO_ENTRY: NoEntryAlert("Vehicle Sensors Calibrating"),
   },
 
   EventName.slowingDownSpeed: {

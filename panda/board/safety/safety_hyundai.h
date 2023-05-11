@@ -195,7 +195,7 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
   // SCC12 is on bus 2 for camera-based SCC cars, bus 0 on all others
   /*if (valid && (addr == 1057) && (((bus == 0 || bus == 2) && !hyundai_camera_scc) )) {
     // 2 bits: 13-14
-    int cruise_engaged = (GET_BYTES_04(to_push) >> 13) & 0x3U;
+    int cruise_engaged = (GET_BYTES(to_push, 0, 4) >> 13) & 0x3U;
     hyundai_common_cruise_state_check(cruise_engaged);
   }*/
 
@@ -207,7 +207,7 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
 
   if (valid && (bus == 0)) {
     if (addr == 593) {
-      int torque_driver_new = ((int)(GET_BYTES_04(to_push) & 0x7ffU) - 982) * 0.4;
+      int torque_driver_new = ((int)(GET_BYTES(to_push, 0, 4) & 0x7ffU) - 982) * 0.4;
       // update array of samples
       update_sample(&torque_driver, torque_driver_new);
     }
@@ -231,7 +231,7 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
 
     // sample wheel speed, averaging opposite corners
     if (addr == 902) {
-      uint32_t hyundai_speed = (GET_BYTES_04(to_push) & 0x3FFFU) + ((GET_BYTES_48(to_push) >> 16) & 0x3FFFU);  // FL + RR
+      uint32_t hyundai_speed = (GET_BYTES(to_push, 0, 4) & 0x3FFFU) + ((GET_BYTES(to_push, 4, 4) >> 16) & 0x3FFFU);  // FL + RR
       hyundai_speed /= 2;
       vehicle_moving = hyundai_speed > HYUNDAI_STANDSTILL_THRSLD;
     }
@@ -258,6 +258,7 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
 uint32_t last_ts_lkas11_from_op = 0;
 uint32_t last_ts_scc12_from_op = 0;
 uint32_t last_ts_mdps12_from_op = 0;
+uint32_t last_ts_fca11_from_op = 0;
 
 static int hyundai_tx_hook(CANPacket_t *to_send) {
 
@@ -300,7 +301,7 @@ static int hyundai_tx_hook(CANPacket_t *to_send) {
 
   // LKA STEER: safety check
   if (addr == 832) {
-    int desired_torque = ((GET_BYTES_04(to_send) >> 16) & 0x7ffU) - 1024U;
+    int desired_torque = ((GET_BYTES(to_send, 0, 4) >> 16) & 0x7ffU) - 1024U;
     bool steer_req = GET_BIT(to_send, 27U) != 0U;
 
     const SteeringLimits limits = hyundai_alt_limits ? HYUNDAI_STEERING_LIMITS_ALT : HYUNDAI_STEERING_LIMITS;
@@ -311,7 +312,7 @@ static int hyundai_tx_hook(CANPacket_t *to_send) {
 
   // UDS: Only tester present ("\x02\x3E\x80\x00\x00\x00\x00\x00") allowed on diagnostics address
   if (addr == 2000) {
-    if ((GET_BYTES_04(to_send) != 0x00803E02U) || (GET_BYTES_48(to_send) != 0x0U)) {
+    if ((GET_BYTES(to_send, 0, 4) != 0x00803E02U) || (GET_BYTES(to_send, 4, 4) != 0x0U)) {
       tx = 0;
     }
   }
@@ -328,27 +329,21 @@ static int hyundai_tx_hook(CANPacket_t *to_send) {
     }
   }*/
 
-  //////////////////////////////////////////////////////////
-  if(tx) {
-    bool is_lkas11_msg = addr == 832;
-    bool is_scc12_msg = addr == 1057;
-    bool is_mdps12_msg = addr == 593;
-
-    if(is_lkas11_msg)
-      last_ts_lkas11_from_op = microsecond_timer_get();
-    else if(is_scc12_msg)
-      last_ts_scc12_from_op = microsecond_timer_get();
-    else if(is_mdps12_msg)
-      last_ts_mdps12_from_op = microsecond_timer_get();
-  }
+  if(addr == 832)
+    last_ts_lkas11_from_op = (tx == 0 ? 0 : microsecond_timer_get());
+  else if(addr == 1057)
+    last_ts_scc12_from_op = (tx == 0 ? 0 : microsecond_timer_get());
+  else if(addr == 593)
+    last_ts_mdps12_from_op = (tx == 0 ? 0 : microsecond_timer_get());
+  else if(addr == 909)
+    last_ts_fca11_from_op = (tx == 0 ? 0 : microsecond_timer_get());
 
   return tx;
 }
 
-static int hyundai_fwd_hook(int bus_num, CANPacket_t *to_fwd) {
+static int hyundai_fwd_hook(int bus_num, int addr) {
 
   int bus_fwd = -1;
-  int addr = GET_ADDR(to_fwd);
 
   uint32_t now = microsecond_timer_get();
 
@@ -367,7 +362,7 @@ static int hyundai_fwd_hook(int bus_num, CANPacket_t *to_fwd) {
     bool is_lkas_msg = addr == 832;
     bool is_lfahda_msg = addr == 1157;
     bool is_scc_msg = addr == 1056 || addr == 1057 || addr == 1290 || addr == 905;
-    //bool is_fca_msg = addr == 909 || addr == 1155;
+    bool is_fca_msg = addr == 909 || addr == 1155;
 
     bool block_msg = is_lkas_msg || is_lfahda_msg || is_scc_msg; //|| is_fca_msg;
     if (!block_msg) {
@@ -381,6 +376,10 @@ static int hyundai_fwd_hook(int bus_num, CANPacket_t *to_fwd) {
       }
       else if(is_scc_msg) {
         if(now - last_ts_scc12_from_op >= 400000)
+          bus_fwd = 0;
+      }
+      else if(is_fca_msg) {
+        if(now - last_ts_fca11_from_op >= 400000)
           bus_fwd = 0;
       }
     }
