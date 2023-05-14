@@ -4,7 +4,7 @@ import math
 from cereal import car
 from opendbc.can.parser import CANParser
 from selfdrive.car.interfaces import RadarInterfaceBase
-from selfdrive.car.hyundai.values import DBC
+from selfdrive.car.hyundai.values import DBC, CANFD_CAR
 from selfdrive.controls.neokii.cruise_state_manager import is_radar_disabler
 
 RADAR_START_ADDR = 0x500
@@ -12,7 +12,7 @@ RADAR_MSG_COUNT = 32
 
 def get_radar_can_parser(CP):
 
-  if is_radar_disabler(CP):
+  if CP.carFingerprint in CANFD_CAR or is_radar_disabler(CP):
 
     if DBC[CP.carFingerprint]['radar'] is None:
       return None
@@ -30,8 +30,7 @@ def get_radar_can_parser(CP):
         ("REL_SPEED", msg),
       ]
       checks += [(msg, 50)]
-    print("RadarInterface: RadarTracks..")  
-    return CANParser('hyundai_kia_mando_front_radar_generated', signals, checks, 1)
+    return CANParser(DBC[CP.carFingerprint]['radar'], signals, checks, 1)
 
   else:
     signals = [
@@ -45,7 +44,6 @@ def get_radar_can_parser(CP):
     checks = [
       ("SCC11", 50),
     ]
-    print("RadarInterface: SCCRadar...")
     return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, CP.sccBus)
 
 
@@ -96,7 +94,7 @@ class RadarInterface(RadarInterfaceBase):
           self.pts[addr].trackId = self.track_id
           self.track_id += 1
 
-        valid = msg['STATE'] in [3, 4]
+        valid = msg['STATE'] in (3, 4)
         if valid:
           azimuth = math.radians(msg['AZIMUTH'])
           self.pts[addr].measured = True
