@@ -406,7 +406,7 @@ struct CarControl {
     leftLaneDepart @9: Bool;
     objDist @10: Int32;
     objRelSpd @11: Float32;
-
+    
     enum VisualAlert {
       # these are the choices from the Honda
       # map as good as you can for your car
