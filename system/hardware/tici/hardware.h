@@ -75,15 +75,29 @@ public:
 
 
   static std::map<std::string, std::string> get_init_logs() {
-    return {
+    std::map<std::string, std::string> ret = {
       {"/BUILD", util::read_file("/BUILD")},
     };
+
+    std::string bs = util::check_output("abctl --boot_slot");
+    ret["boot slot"] = bs.substr(0, bs.find_first_of("\n"));
+
+    std::string temp = util::read_file("/dev/disk/by-partlabel/ssd");
+    temp.erase(temp.find_last_not_of(std::string("\0\r\n", 3))+1);
+    ret["boot temp"] = temp;
+
+    // TODO: log something from system and boot
+    for (std::string part : {"xbl", "abl", "aop", "devcfg", "xbl_config"}) {
+      for (std::string slot : {"a", "b"}) {
+        std::string partition = part + "_" + slot;
+        std::string hash = util::check_output("sha256sum /dev/disk/by-partlabel/" + partition);
+        ret[partition] = hash.substr(0, hash.find_first_of(" "));
+      }
+    }
+
+    return ret;
   }
 
   static bool get_ssh_enabled() { return Params().getBool("SshEnabled"); };
   static void set_ssh_enabled(bool enabled) { Params().putBool("SshEnabled", enabled); };
-
-  static void soft_reboot() {
-    std::system("tmux new -d -s tmp;\ntmux split-window -v -t tmp;\ntmux send-keys -t tmp.0 \"/data/openpilot/launch_openpilot.sh\" ENTER\ntmux send-keys -t tmp.1 \"tmux kill-session -t comma\" ENTER\ntmux send-keys -t tmp.1 \"tmux rename-session -t tmp comma\" ENTER\ntmux send-keys -t tmp.1 \"exit\" ENTER");
-  };
 };
