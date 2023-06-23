@@ -192,7 +192,7 @@ void OnroadWindow::offroadTransition(bool offroad) {
 
       QObject::connect(uiState(), &UIState::offroadTransition, m, &MapWindow::offroadTransition);
 
-      m->setFixedWidth(topWidget(this)->width() / 2);
+      m->setFixedWidth(topWidget(this)->width() / 2 - bdr_s);
       split->insertWidget(0, m);
 
       // Make map visible after adding to split
@@ -362,13 +362,11 @@ void AnnotatedCameraWidget::updateState(const UIState &s) {
 
   const auto cs = sm["controlsState"].getControlsState();
 
-  // update DM icons at 2Hz
-  if (sm.frame % (UI_FREQ / 2) == 0) {
-    dmActive = sm["driverMonitoringState"].getDriverMonitoringState().getIsActiveMode();
-  }
+  // update DM icons
+  dmActive = sm["driverMonitoringState"].getDriverMonitoringState().getIsActiveMode();
 
   hideDM = (cs.getAlertSize() != cereal::ControlsState::AlertSize::NONE);
-  dm_fade_state = fmax(0.0, fmin(1.0, dm_fade_state+0.2*(0.5-(float)(dmActive))));
+  dm_fade_state = std::clamp(dm_fade_state+0.2*(0.5-dmActive), 0.0, 1.0);
 }
 
 void AnnotatedCameraWidget::updateFrameMat() {

@@ -23,7 +23,6 @@ struct CarEvent @0x9b1657f34caf3ad3 {
   enum EventName @0xbaa8c5d505f727de {
     canError @0;
     steerUnavailable @1;
-    brakeUnavailable @2;
     wrongGear @4;
     doorOpen @5;
     seatbeltNotLatched @6;
@@ -145,6 +144,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     startupOneplusDEPRECATED @82;
     startupFuzzyFingerprintDEPRECATED @97;
     noTargetDEPRECATED @25;
+    brakeUnavailableDEPRECATED @2;
   }
 }
 
@@ -171,7 +171,7 @@ struct CarState {
   # gas pedal, 0.0-1.0
   gas @3 :Float32;        # this is user pedal only
   gasPressed @4 :Bool;    # this is user pedal only
-  
+
   engineRpm @46 :Float32;
 
   # brake pedal, 0.0-1.0
@@ -194,6 +194,7 @@ struct CarState {
   stockFcw @31 :Bool;
   espDisabled @32 :Bool;
   accFaulted @42 :Bool;
+  carFaultedNonCritical @47 :Bool;  # some ECU is faulted, but car remains controllable
 
   # cruise state
   cruiseState @10 :CruiseState;
@@ -222,11 +223,11 @@ struct CarState {
   charging @43 :Bool;
 
   # neokii
-  vCluRatio @47 :Float32;
-  autoHold @48 :Int8;
-  tpms @49 :Tpms;
-  navSpeedLimit @50 :Int16;
-  aReqValue @51 :Float32;
+  vCluRatio @48 :Float32;
+  autoHold @49 :Int8;
+  tpms @50 :Tpms;
+  navSpeedLimit @51 :Int16;
+  aReqValue @52 :Float32;
 
   struct Tpms {
     fl @0 :Float32;
@@ -409,7 +410,7 @@ struct CarControl {
     leftLaneDepart @9: Bool;
     objDist @10: Int32;
     objRelSpd @11: Float32;
-    
+
     enum VisualAlert {
       # these are the choices from the Honda
       # map as good as you can for your car
@@ -673,6 +674,8 @@ struct CarParams {
     cornerRadar @21;
     hvac @20;
     parkingAdas @7;  # parking assist system ECU, e.g. Toyota's IPAS, Hyundai's RSPA, etc.
+    epb @22;  # electronic parking brake
+    telematics @23;
 
     # Toyota only
     dsu @6;
@@ -685,7 +688,6 @@ struct CarParams {
     hcp @18;  # Hybrid Control Processor
 
     debug @17;
-    unused @22;
   }
 
   enum FingerprintSource {
