@@ -87,7 +87,7 @@ class CruiseStateManager:
     if button != ButtonType.unknown:
       self.update_cruise_state(CS, int(round(self.speed * CV.MPH_TO_KPH)), button)
 
-    if not self.available: # 이건 디스인게이지 상태..
+    if not self.available:
       self.enabled = False
 
     if self.prev_brake_pressed != CS.brakePressed and CS.brakePressed:
@@ -101,7 +101,6 @@ class CruiseStateManager:
       CS.cruiseState.standstill = False
       CS.cruiseState.speed = self.speed
       CS.cruiseState.gapAdjust = self.gapAdjust
-
     if self.enabled : # 롱컨 시작
       CS.cruiseState.enabled = self.enabled
 

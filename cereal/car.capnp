@@ -408,9 +408,7 @@ struct CarControl {
     leftLaneVisible @7: Bool;
     rightLaneDepart @8: Bool;
     leftLaneDepart @9: Bool;
-    objDist @10: Int32;
-    objRelSpd @11: Float32;
-    
+
     enum VisualAlert {
       # these are the choices from the Honda
       # map as good as you can for your car
@@ -664,6 +662,7 @@ struct CarParams {
     engine @4;
     unknown @5;
     transmission @8; # Transmission Control Module
+    hybrid @18; # hybrid control unit, e.g. Chrysler's HCP, Honda's IMA Control Unit, Toyota's hybrid control computer
     srs @9; # airbag
     gateway @10; # can gateway
     hud @11; # heads up display
@@ -676,6 +675,7 @@ struct CarParams {
     parkingAdas @7;  # parking assist system ECU, e.g. Toyota's IPAS, Hyundai's RSPA, etc.
     epb @22;  # electronic parking brake
     telematics @23;
+    body @24;  # body control module
 
     # Toyota only
     dsu @6;
@@ -683,9 +683,6 @@ struct CarParams {
     # Honda only
     vsa @13; # Vehicle Stability Assist
     programmedFuelInjection @14;
-
-    # Chrysler only
-    hcp @18;  # Hybrid Control Processor
 
     debug @17;
   }
