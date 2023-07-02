@@ -15,6 +15,7 @@ from selfdrive.car.interfaces import CarStateBase
 
 PREV_BUTTON_SAMPLES = 8
 CLUSTER_SAMPLE_RATE = 20  # frames
+GearShifter = car.CarState.GearShifter
 
 
 class CarState(CarStateBase):
@@ -49,6 +50,7 @@ class CarState(CarStateBase):
     self.params = CarControllerParams(CP)
     self.mdps_error_cnt = 0
     self.cruise_unavail_cnt = 0
+    self.gear_shifter = GearShifter.drive # Gear_init for Nexo ?? unknown 21.02.23.LSW
 
     self.lfa_btn = 0
     self.lfa_enabled = False
@@ -150,10 +152,25 @@ class CarState(CarStateBase):
       gear = cp.vl["TCU12"]["CUR_GR"]
     elif self.CP.carFingerprint in CAN_GEARS["use_elect_gears"]:
       gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
+      gear_shifter = GearShifter.unknown
+
+      if gear == 1546:  # Thank you for Neokii 
+        gear_shifter = GearShifter.drive
+      elif gear == 2314:
+        gear_shifter = GearShifter.neutral
+      elif gear == 2569:
+        gear_shifter = GearShifter.park
+      elif gear == 2566:
+        gear_shifter = GearShifter.reverse
+
+      if gear_shifter != GearShifter.unknown and self.gear_shifter != gear_shifter:
+        self.gear_shifter = gear_shifter
+
+      ret.gearShifter = self.gear_shifter      
     else:
       gear = cp.vl["LVR12"]["CF_Lvr_Gear"]
 
-    ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
+    #ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
 
     if not self.CP.openpilotLongitudinalControl or self.CP.sccBus == 2:
       aeb_src = "FCA11" if self.CP.flags & HyundaiFlags.USE_FCA.value else "SCC12"
@@ -697,6 +714,7 @@ class CarState(CarStateBase):
         ("NEW_SIGNAL_1", "SCC_CONTROL"),
         ("MainMode_ACC", "SCC_CONTROL"),
         ("ACCMode", "SCC_CONTROL"),
+        ("CRUISE_INACTIVE", "SCC_CONTROL"),
         ("ZEROS_9", "SCC_CONTROL"),
         ("CRUISE_STANDSTILL", "SCC_CONTROL"),
         ("ZEROS_5", "SCC_CONTROL"),

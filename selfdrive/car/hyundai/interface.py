@@ -13,6 +13,7 @@ from selfdrive.car.interfaces import CarInterfaceBase
 from selfdrive.car.disable_ecu import disable_ecu
 from selfdrive.controls.neokii.cruise_state_manager import is_radar_disabler
 from common.params import Params
+from selfdrive.car.hyundai.cruise_helper import enable_radar_tracks
 
 Ecu = car.CarParams.Ecu
 ButtonType = car.CarState.ButtonEvent.Type
@@ -151,6 +152,11 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 1870. + STD_CARGO_KG  # weight from Limited trim - the only supported trim
       ret.wheelbase = 3.000
       ret.steerRatio = 14.2  # steering ratio according to Hyundai News https://www.hyundainews.com/assets/documents/original/48035-2022SantaCruzProductGuideSpecsv2081521.pdf
+    elif candidate == CAR.NEXO: # fix PolorBear - 22.06.05
+      ret.mass = 1885. + STD_CARGO_KG
+      ret.wheelbase = 2.79
+      ret.steerRatio = 14.19  #https://www.hyundainews.com/en-us/models/hyundai-nexo-2019-nexo/specifications
+      tire_stiffness_factor = 0.385
 
     # Kia
     elif candidate == CAR.KIA_SORENTO:
@@ -253,6 +259,16 @@ class CarInterface(CarInterfaceBase):
       ret.steerRatio = 14.14
     else:
       tire_stiffness_factor = interface_community.get_params(candidate, ret)
+    
+    """
+    BP는 브레이크 포인트 약자 입니다.
+    KpBP: 원하는 속도 구간 넣어주시면 되고요.
+    KpV: 위에 설정한 속도 구간에서의 가속력 이라고 생각하시면 됩니다. 숫자가 클수록 순간 가속력이 높아져요.
+    KiBP : 누적 가속력 브레이크포인트 입니다.
+    KiV: 누적 가속력입니다. 순간 가속력으로 부족한 부분을 채워준다고 생각하시면 됩니다. 숫자가 크면 목표 가속도까지 금방 도달하고, 낮으면 천천히 도달(대신 앞차랑 가까워질 수 있어요)해요. 
+    Thank you by 태하
+    계속 실험을 해봐야 함... 아마도..
+    """
 
     # *** longitudinal control ***
     if candidate in CANFD_CAR:
@@ -263,7 +279,7 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kpBP = [0., 5. * CV.KPH_TO_MS, 10. * CV.KPH_TO_MS, 30. * CV.KPH_TO_MS, 130. * CV.KPH_TO_MS]
       ret.longitudinalTuning.kpV = [1.2, 1.05, 1.0, 0.92, 0.55]
       ret.longitudinalTuning.kiBP = [0., 130. * CV.KPH_TO_MS]
-      ret.longitudinalTuning.kiV = [0.1, 0.05]
+      ret.longitudinalTuning.kiV = [0.2, 0.1]
       ret.stoppingDecelRate = 0.3
 
       ret.steerActuatorDelay = 0.2
@@ -325,8 +341,8 @@ class CarInterface(CarInterfaceBase):
         ret.radarUnavailable = False
         ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiLegacy)]
 
-    if ret.openpilotLongitudinalControl and ret.sccBus == 0 and not Params().get_bool('CruiseStateControl'):
-      ret.pcmCruise = False
+    if ret.openpilotLongitudinalControl and ret.sccBus == 0 and Params().get_bool('CruiseStateControl'):
+      ret.pcmCruise = False # pcmCruise 가 false 여야 롱컨이됨..??
     else:
       ret.pcmCruise = True # managed by cruise state manager
 
@@ -357,6 +373,7 @@ class CarInterface(CarInterfaceBase):
       if CP.flags & HyundaiFlags.CANFD_HDA2.value:
         addr, bus = 0x730, CanBus(CP).ECAN
       disable_ecu(logcan, sendcan, bus=bus, addr=addr, com_cont_req=b'\x28\x83\x01')
+      enable_radar_tracks(CP, logcan, sendcan) # Thank you to ajouatom 
 
     # for blinkers
     if CP.flags & HyundaiFlags.ENABLE_BLINKERS:
