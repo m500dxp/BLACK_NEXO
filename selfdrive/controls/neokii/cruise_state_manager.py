@@ -85,7 +85,7 @@ class CruiseStateManager:
 
     button = self.update_buttons()
     if button != ButtonType.unknown:
-      self.update_cruise_state(CS, int(round(self.speed * CV.MPH_TO_KPH)), button)
+      self.update_cruise_state(CS, int(round(self.speed * CV.MS_TO_KPH)), button)
 
     if not self.available:
       self.enabled = False
@@ -96,13 +96,11 @@ class CruiseStateManager:
 
     CS.cruiseState.available = self.available
 
-    if cruise_state_control: # 크루즈 상태 제어 
-      CS.cruiseState.enabled = False
+    if cruise_state_control:
+      CS.cruiseState.enabled = self.enabled
       CS.cruiseState.standstill = False
       CS.cruiseState.speed = self.speed
       CS.cruiseState.gapAdjust = self.gapAdjust
-    if self.enabled : # 롱컨 시작
-      CS.cruiseState.enabled = self.enabled
 
   def update_buttons(self):
     if self.button_events is None:
@@ -173,9 +171,7 @@ class CruiseStateManager:
       put_nonblocking("SccGapAdjust", str(self.gapAdjust))
 
     if btn == ButtonType.cancel:
-      if not self.enabled :
-        self.available = False
-      self.enabled = False # 메드모드로 변경함.
+      self.enabled = False
 
     v_cruise_kph = clip(round(v_cruise_kph, 1), V_CRUISE_MIN_CRUISE_STATE, V_CRUISE_MAX)
-    self.speed = v_cruise_kph * CV.MPH_TO_KPH
+    self.speed = v_cruise_kph * CV.KPH_TO_MS
