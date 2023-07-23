@@ -7,6 +7,7 @@
     .max_rate_down = (rate_down),                                                \
     .driver_torque_factor = 50,                                                  \
     .driver_torque_allowance = 60,                                               \
+    .type = TorqueDriverLimited,                                                 \
   }                                                                              \
 
 const SteeringLimits SUBARU_STEERING_LIMITS = SUBARU_STEERING_LIMITS_GENERATOR(2047, 50, 70);
