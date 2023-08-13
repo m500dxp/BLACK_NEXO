@@ -5,7 +5,8 @@ from panda import Panda
 from common.conversions import Conversions as CV
 from selfdrive.car.hyundai.hyundaicanfd import CanBus
 from selfdrive.car.hyundai import interface_community
-from selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD_CAR, CAMERA_SCC_CAR, CANFD_RADAR_SCC_CAR, EV_CAR, \
+from selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD_CAR, CAMERA_SCC_CAR, CANFD_RADAR_SCC_CAR, \
+                                                            EV_CAR, \
   HYBRID_CAR, LEGACY_SAFETY_MODE_CAR, Buttons, CarControllerParams, CANFD_HDA2_CAR, CANFD_HDA2_ALT_GEARS
 from selfdrive.car.hyundai.radar_interface import RADAR_START_ADDR
 from selfdrive.car import STD_CARGO_KG, create_button_event, scale_tire_stiffness, get_safety_config
@@ -151,12 +152,13 @@ class CarInterface(CarInterfaceBase):
     elif candidate == CAR.SANTA_CRUZ_1ST_GEN:
       ret.mass = 1870. + STD_CARGO_KG  # weight from Limited trim - the only supported trim
       ret.wheelbase = 3.000
-      ret.steerRatio = 14.2  # steering ratio according to Hyundai News https://www.hyundainews.com/assets/documents/original/48035-2022SantaCruzProductGuideSpecsv2081521.pdf
     elif candidate == CAR.NEXO: # fix PolorBear - 22.06.05
       ret.mass = 1885. + STD_CARGO_KG
       ret.wheelbase = 2.79
       ret.steerRatio = 14.19  #https://www.hyundainews.com/en-us/models/hyundai-nexo-2019-nexo/specifications
-      tire_stiffness_factor = 0.385
+      tire_stiffness_factor = 0.385  
+      # steering ratio according to Hyundai News https://www.hyundainews.com/assets/documents/original/48035-2022SantaCruzProductGuideSpecsv2081521.pdf
+      ret.steerRatio = 14.2
 
     # Kia
     elif candidate == CAR.KIA_SORENTO:
@@ -230,11 +232,13 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 2087. + STD_CARGO_KG
       ret.wheelbase = 3.09
       ret.steerRatio = 14.23
+
     # Genesis
     elif candidate == CAR.GENESIS_GV60_EV_1ST_GEN:
       ret.mass = 2205 + STD_CARGO_KG
       ret.wheelbase = 2.9
-      ret.steerRatio = 12.6 # https://www.motor1.com/reviews/586376/2023-genesis-gv60-first-drive/#:~:text=Relative%20to%20the%20related%20Ioniq,5%2FEV6%27s%2014.3%3A1.
+      # https://www.motor1.com/reviews/586376/2023-genesis-gv60-first-drive/#:~:text=Relative%20to%20the%20related%20Ioniq,5%2FEV6%27s%2014.3%3A1.
+      ret.steerRatio = 12.6
     elif candidate == CAR.GENESIS_G70:
       ret.steerActuatorDelay = 0.1
       ret.mass = 1640.0 + STD_CARGO_KG
@@ -262,7 +266,7 @@ class CarInterface(CarInterfaceBase):
       ret.steerRatio = 14.14
     else:
       tire_stiffness_factor = interface_community.get_params(candidate, ret)
-    
+      
     """
     BP는 브레이크 포인트 약자 입니다.
     KpBP: 원하는 속도 구간 넣어주시면 되고요.
