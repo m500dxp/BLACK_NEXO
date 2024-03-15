@@ -9,7 +9,7 @@ if __name__ == "__main__":
   CP = car.CarParams(notCar=True)
   Params().put("CarParams", CP.to_bytes())
 
-  procs = ['camerad', 'ui', 'modeld', 'calibrationd', 'dmonitoringmodeld', 'dmonitoringd', 'navi_controller']
+  procs = ['camerad', 'ui', 'modeld', 'calibrationd', 'dmonitoringmodeld', 'dmonitoringd']
 
   HARDWARE.set_power_save(False)
 
@@ -26,14 +26,18 @@ if __name__ == "__main__":
   msgs['pandaStates'].pandaStates[0].ignitionLine = True
   msgs['pandaStates'].pandaStates[0].pandaType = log.PandaState.PandaType.dos
 
-  speed = 70. / 3.6
+  speed = 0.
   try:
     while True:
       time.sleep(1 / 100)  # continually send, rate doesn't matter
 
       msgs['carState'] = messaging.new_message('carState')
       msgs['carState'].carState.vEgoCluster = speed
-      msgs['carState'].carState.vEgo = speed
+
+      speed += 0.02
+      if speed > 40.:
+        speed = 0.
+
       msgs['carControl'].carControl.debugText = "Speed: {}\nTest\nTEST...TEST".format(speed)
 
       for s in msgs:

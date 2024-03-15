@@ -9,8 +9,6 @@
 #include "selfdrive/ui/qt/util.h"
 #include "selfdrive/ui/ui.h"
 
-#include "selfdrive/controls/neokii/navi_gps_manager.h"
-NaviGpsManager navi_gps_manager;
 
 const int INTERACTION_TIMEOUT = 100;
 
@@ -135,20 +133,7 @@ void MapWindow::updateState(const UIState &s) {
     uiState()->scene.navigate_on_openpilot = nav_enabled;
   }
 
-  if(navi_gps_manager.check()) {
-    locationd_valid = true;
-    QMapLibre::Coordinate position;
-    float bearing = 0.0f, speed = 0.0f;
-    navi_gps_manager.update(position, bearing, speed);
-    last_position = position;
-    last_bearing = bearing;
-    velocity_filter.update(std::max(10.0, (double)speed));
-    if(m_map && m_map->isFullyLoaded()) {
-      navi_gps_manager.setPosition(m_map.data(), position);
-      navi_gps_manager.setBearing(m_map.data(), bearing);
-    }
-  }
-  else if (sm.updated("liveLocationKalman")) {
+  if (sm.updated("liveLocationKalman")) {
     auto locationd_location = sm["liveLocationKalman"].getLiveLocationKalman();
     auto locationd_pos = locationd_location.getPositionGeodetic();
     auto locationd_orientation = locationd_location.getCalibratedOrientationNED();
@@ -211,10 +196,8 @@ void MapWindow::updateState(const UIState &s) {
   }
 
   if (interaction_counter == 0) {
-    if(!navi_gps_manager.isValid()) {
-      if (last_position) m_map->setCoordinate(*last_position);
-      if (last_bearing) m_map->setBearing(*last_bearing);
-    }
+    if (last_position) m_map->setCoordinate(*last_position);
+    if (last_bearing) m_map->setBearing(*last_bearing);
     m_map->setZoom(util::map_val<float>(velocity_filter.x(), 0, 30, MAX_ZOOM, MIN_ZOOM));
   } else {
     interaction_counter--;
@@ -232,7 +215,7 @@ void MapWindow::updateState(const UIState &s) {
       map_eta->updateETA(i.getTimeRemaining(), i.getTimeRemainingTypical(), i.getDistanceRemaining());
 
       if (locationd_valid) {
-        if(!navi_gps_manager.isValid())  m_map->setPitch(MAX_PITCH); // TODO: smooth pitching based on maneuver distance
+        m_map->setPitch(MAX_PITCH); // TODO: smooth pitching based on maneuver distance
         map_instructions->updateInstructions(i);
       }
     } else {
