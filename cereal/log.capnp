@@ -2348,6 +2348,7 @@ struct Event {
     
     # neokii
     naviData @128 :NaviData;
+    naviGps @129 :NaviGps;
 
     # *********** legacy + deprecated ***********
     model @9 :Legacy.ModelData; # TODO: rename modelV2 and mark this as deprecated
@@ -2417,4 +2418,11 @@ struct NaviData {
       redLightRemainTime @5 :Int16;
       distance @6 :Int16;
   }
+}
+
+struct NaviGps {
+  latitude @0 :Float32;
+  longitude @1 :Float32;
+  heading @2 :Float32;
+  speed @3 :Float32;
 }
